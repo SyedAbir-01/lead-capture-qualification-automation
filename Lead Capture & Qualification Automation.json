@@ -1,0 +1,477 @@
+{
+  "name": "Lead Capture & Qualification Automation",
+  "nodes": [
+    {
+      "parameters": {
+        "formTitle": "Lead Inquiry",
+        "formDescription": "Tell us a little about what you need help with, and we'll get back to you.",
+        "formFields": {
+          "values": [
+            {
+              "fieldLabel": "Name"
+            },
+            {
+              "fieldLabel": "Email",
+              "fieldType": "email"
+            },
+            {
+              "fieldLabel": "Company"
+            },
+            {
+              "fieldLabel": "Message"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.formTrigger",
+      "typeVersion": 2.6,
+      "position": [
+        -2032,
+        -624
+      ],
+      "id": "4efed27d-6725-4853-8cda-2b4ec4a2eea5",
+      "name": "On form submission",
+      "webhookId": "66ec3c1b-2cdc-48fa-96af-18e5af61bfa6"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "8fd24bcb-9b62-4773-b9b4-e45274bfb9d7",
+              "name": "name",
+              "value": "={{ $json.Name }}",
+              "type": "string"
+            },
+            {
+              "id": "411d1df8-0904-4686-b184-0183b5f0a3ed",
+              "name": "email",
+              "value": "={{ $json.Email }}",
+              "type": "string"
+            },
+            {
+              "id": "b7442196-1d58-4e38-ba2f-b6d8e0231c1b",
+              "name": "company",
+              "value": "={{ $json.Company }}",
+              "type": "string"
+            },
+            {
+              "id": "a268e367-2686-4010-8a28-244ecea879e3",
+              "name": "message",
+              "value": "={{ $json.Message }}",
+              "type": "string"
+            },
+            {
+              "id": "4a23b287-32e5-4fd6-8b23-e41adf6263c0",
+              "name": "source",
+              "value": "Website Lead Form",
+              "type": "string"
+            },
+            {
+              "id": "9deb73fd-2e65-4e5c-b521-0302e6ff87dc",
+              "name": "status",
+              "value": "New",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.5,
+      "position": [
+        -1808,
+        -624
+      ],
+      "id": "bdd7d34b-0686-4061-996a-2bd8556506ee",
+      "name": "Edit Fields"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 3
+          },
+          "conditions": [
+            {
+              "id": "3446c0f2-9e06-4e0f-a07e-31d125db7b08",
+              "leftValue": "={{ $json.email }}",
+              "rightValue": "^[^\\s@]+@[^\\s@]+\\.[^\\s@]+$",
+              "operator": {
+                "type": "string",
+                "operation": "notEmpty",
+                "singleValue": true
+              }
+            },
+            {
+              "id": "0008c11c-c69e-421d-887a-f9a20d3a8e19",
+              "leftValue": "={{ $json.name }}",
+              "rightValue": "",
+              "operator": {
+                "type": "string",
+                "operation": "notEmpty",
+                "singleValue": true
+              }
+            },
+            {
+              "id": "333a3597-d131-47f4-9bd1-61e2121ac175",
+              "leftValue": "={{ $json.message }}",
+              "rightValue": "",
+              "operator": {
+                "type": "string",
+                "operation": "notEmpty",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.3,
+      "position": [
+        -1584,
+        -624
+      ],
+      "id": "b14d3c10-bae0-420f-84bd-745a81b0e608",
+      "name": "If"
+    },
+    {
+      "parameters": {
+        "jsCode": "const lead = $json;\n\nconst text = `${lead.message || \"\"} ${lead.company || \"\"}`.toLowerCase();\n\nlet score = 0;\n\nconst highIntentKeywords = [\n  \"need\",\n  \"urgent\",\n  \"ready\",\n  \"automation\",\n  \"automate\",\n  \"quote\",\n  \"pricing\",\n  \"price\",\n  \"project\",\n  \"hire\",\n  \"help\"\n];\n\nconst mediumIntentKeywords = [\n  \"interested\",\n  \"information\",\n  \"learn\",\n  \"details\",\n  \"demo\",\n  \"question\"\n];\n\nfor (const keyword of highIntentKeywords) {\n  if (text.includes(keyword)) {\n    score += 2;\n  }\n}\n\nfor (const keyword of mediumIntentKeywords) {\n  if (text.includes(keyword)) {\n    score += 1;\n  }\n}\n\nlet leadPriority;\nlet recommendedAction;\n\nif (score >= 4) {\n  leadPriority = \"HIGH\";\n  recommendedAction = \"Contact lead immediately\";\n} else if (score >= 1) {\n  leadPriority = \"MEDIUM\";\n  recommendedAction = \"Follow up within 24 hours\";\n} else {\n  leadPriority = \"LOW\";\n  recommendedAction = \"Add to nurture list\";\n}\n\nreturn [\n  {\n    json: {\n      ...lead,\n      leadScore: score,\n      leadPriority: leadPriority,\n      recommendedAction: recommendedAction\n    }\n  }\n];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -1360,
+        -624
+      ],
+      "id": "852ab7ea-0f26-4dd9-974d-8264a28a550b",
+      "name": "Code in JavaScript"
+    },
+    {
+      "parameters": {
+        "rules": {
+          "values": [
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 3
+                },
+                "conditions": [
+                  {
+                    "leftValue": "={{ $json.leadPriority }}",
+                    "rightValue": "HIGH",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    },
+                    "id": "3022d36d-4e03-4940-91f4-bec2f5062b09"
+                  }
+                ],
+                "combinator": "and"
+              }
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 3
+                },
+                "conditions": [
+                  {
+                    "id": "b0779215-53fa-444b-8600-cfe4ee27c441",
+                    "leftValue": "={{ $json.leadPriority }}",
+                    "rightValue": "MEDIUM",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals",
+                      "name": "filter.operator.equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              }
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 3
+                },
+                "conditions": [
+                  {
+                    "id": "76bc55e3-0822-433e-af48-14c78048ea21",
+                    "leftValue": "={{ $json.leadPriority }}",
+                    "rightValue": "LOW",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals",
+                      "name": "filter.operator.equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              }
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 3
+                },
+                "conditions": [
+                  {
+                    "id": "f8820332-7c3f-442d-98b7-65785ec2d0b7",
+                    "leftValue": "",
+                    "rightValue": "",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals",
+                      "name": "filter.operator.equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              }
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.switch",
+      "typeVersion": 3.4,
+      "position": [
+        -1136,
+        -656
+      ],
+      "id": "98033213-c040-4c73-b19c-1464c57d320c",
+      "name": "Switch"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "cebc258c-16d8-41ec-a4e9-e83c90c9323f",
+              "name": "priority",
+              "value": "HIGH",
+              "type": "string"
+            },
+            {
+              "id": "750e8ca9-9c52-48f2-a573-bc160ffe15e4",
+              "name": "action",
+              "value": "Contact lead immediately",
+              "type": "string"
+            },
+            {
+              "id": "93c8e86a-c7e4-43f6-bb22-908448d9f30e",
+              "name": "response_status",
+              "value": "Ready for response",
+              "type": "string"
+            },
+            {
+              "id": "7c94f842-7027-40d4-8793-2d9891b9b868",
+              "name": "response_draft",
+              "value": "=Hi {{ $json.name }},  Thanks for reaching out. We received your request and would be happy to discuss how we can help.  Your request: {{ $json.message }}  We'll review the details and get back to you shortly.  Best regards",
+              "type": "string"
+            }
+          ]
+        },
+        "includeOtherFields": true,
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.5,
+      "position": [
+        -912,
+        -816
+      ],
+      "id": "4b7497a3-1ecd-4d23-9517-019e83eb3097",
+      "name": "Edit Fields1"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "518aa913-8080-4306-8429-4c850c746aef",
+              "name": "priority",
+              "value": "MEDIUM",
+              "type": "string"
+            },
+            {
+              "id": "374377f3-b29b-4938-b8da-9f677ce14aa0",
+              "name": "action",
+              "value": "Follow up within 24 hours",
+              "type": "string"
+            },
+            {
+              "id": "c9d3b181-578d-4a46-b4ff-078dc2e4cc52",
+              "name": "response_status",
+              "value": "Follow-up required",
+              "type": "string"
+            },
+            {
+              "id": "e4fbf88e-075d-4a46-9467-963abe332758",
+              "name": "=response_draft",
+              "value": "=Hi {{ $json.name }},  Thanks for reaching out and for your interest. We'd be happy to learn more about what you're looking to accomplish.  Your request: {{ $json.message }}  We'll follow up with you within 24 hours.  Best regards",
+              "type": "string"
+            }
+          ]
+        },
+        "includeOtherFields": true,
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.5,
+      "position": [
+        -912,
+        -624
+      ],
+      "id": "4e719264-ab04-4020-8342-aad66a189222",
+      "name": "Edit Fields2"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "9492d28e-e50b-4b5a-b586-6ee555b37224",
+              "name": "priority",
+              "value": "LOW",
+              "type": "string"
+            },
+            {
+              "id": "a5a63d3d-a6b5-48c1-98ac-0df78b24db44",
+              "name": "action",
+              "value": "Add to nurture list",
+              "type": "string"
+            },
+            {
+              "id": "268f5dbb-fc43-4dfb-981a-34687e5b406a",
+              "name": "response_status",
+              "value": "Nurture",
+              "type": "string"
+            },
+            {
+              "id": "f4218286-f9b9-449e-b3ab-ef491260079f",
+              "name": "response_draft",
+              "value": "=Hi {{ $json.name }},  Thanks for getting in touch. We've received your message and will keep your information on file.  When you're ready, we'd be happy to help.  Best regards",
+              "type": "string"
+            }
+          ]
+        },
+        "includeOtherFields": true,
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.5,
+      "position": [
+        -912,
+        -432
+      ],
+      "id": "b7c82d7e-0ca4-49b0-8e08-62f2a0a4b95e",
+      "name": "Edit Fields3"
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "On form submission": {
+      "main": [
+        [
+          {
+            "node": "Edit Fields",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Edit Fields": {
+      "main": [
+        [
+          {
+            "node": "If",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "If": {
+      "main": [
+        [
+          {
+            "node": "Code in JavaScript",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Code in JavaScript": {
+      "main": [
+        [
+          {
+            "node": "Switch",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Switch": {
+      "main": [
+        [
+          {
+            "node": "Edit Fields1",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Edit Fields2",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Edit Fields3",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": true,
+  "settings": {
+    "executionOrder": "v1",
+    "binaryMode": "separate"
+  },
+  "versionId": "182d5c93-1ecd-4397-939e-8ff2fea4ef26",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "f132259eba865fefd15cef24b9bc61ffa9d0e7d91a43fa5eba1e34a879d5df72"
+  },
+  "nodeGroups": [],
+  "id": "mJRxUVSmF2ABDUVX",
+  "tags": []
+}
